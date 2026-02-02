@@ -414,86 +414,74 @@ def track_order(current_user, order_number):
 def rate_order_products(current_user, order_id):
     try:
         data = request.get_json()
-        
         if not data or "ratings" not in data:
             return jsonify({"error": "Ratings data is required"}), 400
-        
+
         # Find order by order_number
         order = Order.query.filter_by(order_number=order_id, user_id=current_user.id).first()
-        
         if not order:
             return jsonify({"error": "Order not found"}), 404
-        
-        # Check if order is delivered
+
         if order.order_status != "delivered":
             return jsonify({"error": "Only delivered orders can be rated"}), 400
-        
-        # Check if products in order exist
-        for rating_item in data["ratings"]:
-            if "product_id" not in rating_item or "rate" not in rating_item:
-                return jsonify({"error": "Each rating must include product_id and rate"}), 400
-            
-            product = Product.query.get(rating_item["product_id"])
-            if not product:
-                return jsonify({"error": f"Product {rating_item['product_id']} not found"}), 404
-            
-            # Check if product was in the order
-            product_in_order = False
-            for item in order.items:
-                if item.get("product_id") == rating_item["product_id"]:
-                    product_in_order = True
-                    break
-            
-            if not product_in_order:
-                return jsonify({"error": f"Product {rating_item['product_id']} was not in this order"}), 400
-        
-        # Create reviews
+
         created_reviews = []
         for rating_item in data["ratings"]:
-            # Check if user already reviewed this product from this order
-            existing_review = Review.query.filter_by(
-                user_id=current_user.id,
-                product_id=rating_item["product_id"]
-            ).first()
-            
+            product_id = rating_item.get("product_id")
+            rate = rating_item.get("rate")
+            description = rating_item.get("description", "")
+
+            if not product_id or rate is None:
+                return jsonify({"error": "Each rating must include product_id and rate"}), 400
+
+            # Check if product exists
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": f"Product {product_id} not found"}), 404
+
+            # Check if the user actually bought this product
+            purchased = any(item.get("product_id") == product_id for item in order.items)
+            if not purchased:
+                return jsonify({"error": f"You can only rate products you purchased. Product {product_id} not in your order."}), 403
+
+            # Check if review exists
+            existing_review = Review.query.filter_by(user_id=current_user.id, product_id=product_id).first()
             if existing_review:
-                # Update existing review
-                existing_review.rates = rating_item["rate"]
-                existing_review.description = rating_item.get("description", "")
+                existing_review.rates = rate
+                existing_review.description = description
                 existing_review.verified = True
                 db.session.add(existing_review)
                 created_reviews.append(existing_review)
             else:
-                # Create new review
                 review = Review(
                     user_id=current_user.id,
-                    product_id=rating_item["product_id"],
+                    product_id=product_id,
                     username=current_user.username,
-                    rates=rating_item["rate"],
-                    description=rating_item.get("description", ""),
+                    rates=rate,
+                    description=description,
                     verified=True
                 )
                 db.session.add(review)
                 created_reviews.append(review)
-        
+
         db.session.commit()
-        
         return jsonify({
             "status": "success",
             "message": f"Rated {len(created_reviews)} product(s) successfully",
             "reviews": [{
-                "id": review.id,
-                "product_id": review.product_id,
-                "rate": review.rates,
-                "description": review.description,
-                "verified": review.verified,
-                "created_at": review.created_at.isoformat()
-            } for review in created_reviews]
+                "id": r.id,
+                "product_id": r.product_id,
+                "rate": r.rates,
+                "description": r.description,
+                "verified": r.verified,
+                "created_at": r.created_at.isoformat()
+            } for r in created_reviews]
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/products/<int:product_id>/ratings", methods=["GET"])
 def get_product_ratings(product_id):

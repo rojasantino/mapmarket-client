@@ -1,5 +1,7 @@
 config.py
 test.txt
 __pycache__/
-env/
+*.log
+.env
 venv/
+env/
