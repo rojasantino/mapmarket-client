@@ -8,3 +8,5 @@ venv
 .env
 .git
 .gitignore
+.env.example
+QUICKSTART.md

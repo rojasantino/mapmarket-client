@@ -4,7 +4,7 @@ from flask_swagger_ui import get_swaggerui_blueprint
 import os, json
 from db import db
 from config import Config
-from models import signup, users, products, orders, wishlists, reviews, cart, billing, payment_details
+from models import signup, users, products, orders, wishlists, reviews, cart, billing, payment_details, email_otp, order_timeline, qr_payment
 
 
 app = Flask(__name__, static_folder="static")
@@ -26,7 +26,7 @@ app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 with app.app_context():
     db.create_all()
     db.session.commit()
-    from routes import main, carts, wishlist, payments_routes
+    from routes import main, carts, wishlist, payments_routes, email_routes, order_tracking_routes, qr_payment_routes, payment_integration_routes, orders_routes
 
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")

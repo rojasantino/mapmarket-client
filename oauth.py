@@ -1,7 +1,7 @@
 # oauth.py
 import os
 import requests
-from flask import current_app
+from flask import current_app, request, jsonify
 from functools import wraps
 import json
 

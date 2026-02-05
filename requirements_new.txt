@@ -1,0 +1,6 @@
+# Additional dependencies for order tracking and payment system
+razorpay==1.4.1
+stripe==7.8.0
+qrcode[pil]==7.4.2
+python-dotenv==1.0.0
+Pillow==10.2.0
