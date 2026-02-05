@@ -9,6 +9,8 @@ from models import signup, users, products, orders, wishlists, reviews, cart, bi
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
+# CORS(app, origins=["https://yourdomain.com"])
+
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 db.init_app(app)
 
